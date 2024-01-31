@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ptbr">
+
+<head>
+    <%- include('../partials/head'); %>
+</head>
+
+<body class="container">
+
+    <header>
+        <%- include('../partials/header'); %>
+        <% if(req.session.loggedin) { %>
+        <%- include('../partials/menu_dashboard'); %>
+        <% } %>        
+    </header>
+
+    <main>
+        <h1>Comentários</h1>
+    
+        <% if (comentarios && comentarios.length > 0) { %>
+            <ul>
+                <% comentarios.forEach(comentario => { %>
+                    <li>
+                        <strong>Usuário:</strong> <%= comentario.usuario %><br>
+                        <strong>Comentário:</strong> <%= comentario.comentario %>
+                    </li>
+                <% }); %>
+            </ul>
+        <% } else { %>
+            <p>Nenhum comentário ainda.</p>
+        <% } %>
+    
+        <!-- Adicione um formulário para adicionar novos comentários, se necessário -->
+        <form action="/blogar" method="POST">
+            <label for="comentario">Comentário:</label>
+            <textarea name="comentario" required></textarea>
+            <button type="submit">Adicionar Comentário</button>
+        </form>
+    </main>
+
+    <footer>
+        <%- include('../partials/footer'); %>
+    </footer>
+
+</body>

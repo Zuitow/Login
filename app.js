@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const app = express();
@@ -7,8 +7,8 @@ const app = express();
 // Configurar a conexão com o banco de dados MySQL
 const db = mysql.createConnection({
     host: 'localhost',
-    user: 'root',
-    password: '',
+    user: 'phpmyadmin',
+    password: 'paulo',
     database: 'mydb',
 });
 
@@ -71,10 +71,11 @@ app.post('/login', (req, res) => {
 
     db.query(query, [username, password], (err, results) => {
         if (err) throw err;
+        
 
         if (results.length > 0) {
             req.session.loggedin = true;
-            req.session.username = username;
+            req.session.username = username; // Salve o nome de usuário na sessão
             res.redirect('/dashboard');
         } else {
             // res.send('Credenciais incorretas. <a href="/">Tente novamente</a>');
@@ -124,6 +125,54 @@ app.post('/cadastrar', (req, res) => {
             });
         }
     });
+});
+
+app.post('/blogar', async (req, res) => {
+    const { comentario } = req.body;
+    const username = req.session.username;
+
+    if (req.session.username){
+        const username = req.session.username;
+        console.log("ESTOU NO BLOGAR, DENTRO DO IF",username);
+    }
+
+    // Inserir a nova consulta no banco de dados
+    const SQL = 'INSERT INTO blog (usuario, comentario) VALUES (?, ?)';
+    db.query(SQL, [username, comentario], (err, result) => {
+      if (err) {
+        console.error('Erro ao comentar:', err);
+        res.status(500).send('Erro ao comentar');
+      } else {
+        console.log(username+"comentou:"+comentario);
+        
+       res.redirect('/blogs'); 
+      }
+    });
+  });
+
+
+  app.get('/blogs', (req, res) => {
+    if (req.session.loggedin) {
+    if (req.session.usertype === "Administrador") {
+    const query = 'SELECT * FROM blog';
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Erro ao obter comentários:', err);
+            res.status(500).send('Erro ao obter comentários');
+        } else {
+            // Renderiza a página "blogs" e passa os comentários para o template EJS
+            res.render('pages/blogs', { comentarios: results, req: req }); // Certifique-se de passar o req
+        }
+    
+
+    });
+}
+    }
+});
+
+app.get('/blog', (req, res) => {
+    res.render('pages/blog', { req: req });
 });
 
 app.get('/register_failed', (req, res) => {
