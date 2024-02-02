@@ -160,7 +160,7 @@ app.post('/blogar', async (req, res) => {
 
     if (req.session.username){
         const username = req.session.username;
-        console.log("ESTOU NO BLOGAR, DENTRO DO IF",username);
+        console.log("Mensagem sendo enviada...");
     }
 
     // Inserir a nova consulta no banco de dados
@@ -170,7 +170,7 @@ app.post('/blogar', async (req, res) => {
         console.error('Erro ao comentar:', err);
         res.status(500).send('Erro ao comentar');
       } else {
-        console.log(username+"comentou:"+comentario);
+        console.log(username+" comentou: "+comentario);
         
        res.redirect('/blogs'); 
       }
