@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const app = express();
+const path = require('path'); 
 
 // Configurar a conexão com o banco de dados MySQL
 const db = mysql.createConnection({
@@ -29,9 +30,10 @@ app.use(
     })
 );
 
+app.use(express.static(path.join(__dirname, 'static')));
+
 // Configuração de pastas com aquivos estáticos
 //app.use('/img', express.static(__dirname + '/img'))
-app.use('/', express.static(__dirname + '/static'))
 
 // Engine do Express para processar o EJS (templates)
 // Lembre-se que para uso do EJS uma pasta (diretório) 'views', precisa existir na raiz do projeto.
@@ -63,23 +65,48 @@ app.get('/about', (req, res) => {
     res.render('pages/about', { req: req })
 });
 
+
 // Rota para processar o formulário de login
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    const query = 'SELECT * FROM users WHERE username = ? AND password = SHA1(?)';
+    // Verificar na tabela de usuários
+    const queryUsers = 'SELECT * FROM users WHERE username = ? AND password = SHA1(?)';
+    db.query(queryUsers, [username, password], (err, results) => {
+        if (err) {
+            console.error('Erro ao verificar o login:', err);
+            return res.redirect('/login_err');
+        }
 
-    db.query(query, [username, password], (err, results) => {
-        if (err) throw err;
-        
-
-        if (results.length > 0) {
+        if (results && results.length > 0) {
+            const user = results[0];
+            console.log('Login bem sucedido de Usuário: ' + user.username);
             req.session.loggedin = true;
-            req.session.username = username; // Salve o nome de usuário na sessão
-            res.redirect('/dashboard');
+            req.session.username = user.username;
+            req.session.usertype = 'Usuário';
+            // Adicione outros dados específicos do usuário, se necessário
+            return res.status(200).redirect('/dashboard');
         } else {
-            // res.send('Credenciais incorretas. <a href="/">Tente novamente</a>');
-            res.redirect('/login_failed');
+            // Se não encontrado na tabela de usuários, verificar na tabela de administradores
+            const queryAdmins = 'SELECT * FROM Administrador WHERE username = ? AND password = SHA1(?)';
+            db.query(queryAdmins, [username, password], (err, results) => {
+                if (err) {
+                    console.error('Erro ao verificar o login:', err);
+                    return res.redirect('/login_err');
+                }
+
+                if (results && results.length > 0) {
+                    const admin = results[0];
+                    console.log('Login bem sucedido de Administrador: ' + admin.username);
+                    req.session.loggedin = true;
+                    req.session.username = admin.username;
+                    req.session.usertype = 'Administrador';
+                    return res.redirect('/');
+                } else {
+                    console.log('Credenciais inválidas');
+                    return res.redirect('/login_failed');
+                }
+            });
         }
     });
 });
@@ -172,7 +199,11 @@ app.post('/blogar', async (req, res) => {
 });
 
 app.get('/blog', (req, res) => {
-    res.render('pages/blog', { req: req });
+    if (req.session.loggedin) {
+        res.render('pages/blog', { req: req, username: req.session.username });
+    } else {
+        res.redirect('/login'); // ou qualquer outra rota para redirecionar usuários não autenticados
+    }
 });
 
 app.get('/register_failed', (req, res) => {
